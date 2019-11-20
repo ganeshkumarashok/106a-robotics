@@ -1,0 +1,2 @@
+forward:lab4_skeleton/ar_track_alvar/ar_track_alvar:lab4_skeleton/ar_track_alvar/ar_track_alvar_msgs:lab4_skeleton/lab4_cam:lab4_skeleton/usb_cam
+-DCATKIN_DEVEL_PREFIX=/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel -DCMAKE_INSTALL_PREFIX=/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/install -G Unix Makefiles

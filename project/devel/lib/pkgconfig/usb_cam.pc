@@ -1,0 +1,8 @@
+prefix=/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel
+
+Name: usb_cam
+Description: Description of usb_cam
+Version: 0.3.6
+Cflags: -I/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/src/lab4_skeleton/usb_cam/include
+Libs: -L/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel/lib -lusb_cam
+Requires: 
