@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "".split(';') if "" != "" else []
 PROJECT_NAME = "forward"
-PROJECT_SPACE_DIR = "/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel"
+PROJECT_SPACE_DIR = "/home/cc/ee106a/fa19/class/ee106a-afg/106a-robotics/project/devel"
 PROJECT_VERSION = "0.0.0"

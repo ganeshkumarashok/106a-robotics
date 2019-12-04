@@ -1,8 +1,8 @@
-prefix=/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel
+prefix=/home/cc/ee106a/fa19/class/ee106a-afg/106a-robotics/project/devel
 
 Name: forward
 Description: Description of forward
 Version: 0.0.0
 Cflags: 
-Libs: -L/home/cc/ee106a/fa19/class/ee106a-afg/ros_workspaces/project/devel/lib 
+Libs: -L/home/cc/ee106a/fa19/class/ee106a-afg/106a-robotics/project/devel/lib 
 Requires: 
