@@ -1,0 +1,8 @@
+prefix=/media/ros/4fb56043-206d-4674-bb56-96d2e54648c4/home/106a-robotics/motion_capture/install
+
+Name: optitrack_tracking
+Description: Description of optitrack_tracking
+Version: 0.0.0
+Cflags: 
+Libs: -L/media/ros/4fb56043-206d-4674-bb56-96d2e54648c4/home/106a-robotics/motion_capture/install/lib 
+Requires: 

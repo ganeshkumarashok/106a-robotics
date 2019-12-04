@@ -1,0 +1,2 @@
+optitrack_tracking
+-DCATKIN_DEVEL_PREFIX=/media/ros/4fb56043-206d-4674-bb56-96d2e54648c4/home/106a-robotics/motion_capture/devel -DCMAKE_INSTALL_PREFIX=/media/ros/4fb56043-206d-4674-bb56-96d2e54648c4/home/106a-robotics/motion_capture/install -G Unix Makefiles
