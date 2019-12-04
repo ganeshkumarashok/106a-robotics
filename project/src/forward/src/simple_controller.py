@@ -3,26 +3,51 @@
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+import tf2_ros
+import tf2_geometry_msgs
 from math import radians
 
 TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
 
 class EncoderListener():
     def __init__(self):
+
+        rospy.init_node('closed_loop_control', anonymous=False)
+
         self.angle = 0
         self.distance = 0
         self.topic = "/" + TURTLEBOT_ID + "/odom/"
+
+        self.tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
         print("ENCODER LISTENER STARTED")
 
         def callback(data): 
-            print(data.pose.pose.position)
+            #print(data.pose.pose.position)
+            transform = self.tf_buffer.lookup_transform("base_link",
+                                       "odom", #source frame
+                                       rospy.Time(0), #get the tf at first available time
+                                       rospy.Duration(1.0)) #wait for 1 second
+            print("transform")
+            print(transform)
+            transform.transform.translation.x = 0
+            transform.transform.translation.y = 0
+            transform.transform.translation.z = 0
+
+            pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
+            print("ORIGINAL")
+            print(data.pose)
+            print("TRANSFORMED")
+            print(pose_transformed)
 
         rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
+
 
 class openloop_move():
     def __init__(self):
         # initiliaze
-        rospy.init_node('drawasquare', anonymous=False)
+        # rospy.init_node('drawasquare', anonymous=False)
 
         # What to do you ctrl + c    
         rospy.on_shutdown(self.shutdown)
@@ -90,10 +115,16 @@ class openloop_move():
             self.r.sleep()
  
 if __name__ == '__main__':
-    # try:
     encoder_listener = EncoderListener()
     draw_tri = openloop_move()
     draw_tri.go_forward(2)
+    draw_tri.go_backward(2)
+    draw_tri.go_forward(2)
+    draw_tri.go_backward(2)
+    draw_tri.go_forward(2)
+    draw_tri.go_backward(2)
+    draw_tri.go_forward(2)
+    draw_tri.go_backward(2)
     # draw_tri.turn_right(2, speed=90)
     # draw_tri.curve_left(3)
     # draw_tri.go_forward(2)
