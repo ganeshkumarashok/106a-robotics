@@ -12,9 +12,9 @@ class openloop_move():
         # What to do you ctrl + c    
         rospy.on_shutdown(self.shutdown)
         
-        turtlebot_id = 'red' # might need to change this. If unsure or doesn't work, check rostopic list
-        self.cmd_vel = rospy.Publisher('/' + turtlebot_id + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-        #self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+        # turtlebot_id = 'red' # might need to change this. If unsure or doesn't work, check rostopic list
+        # self.cmd_vel = rospy.Publisher('/' + turtlebot_id + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+        self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
      
     #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
         self.update_rate = 10
