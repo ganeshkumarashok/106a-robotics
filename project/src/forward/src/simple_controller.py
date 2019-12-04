@@ -2,7 +2,22 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from math import radians
+
+TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
+
+class EncoderListener():
+    def __init__(self):
+        self.angle = 0
+        self.distance = 0
+        self.topic = "/" + TURTLEBOT_ID + "/odom/"
+        print("ENCODER LISTENER STARTED")
+
+        def callback(data): 
+            print(data.pose.pose.position)
+
+        rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
 
 class openloop_move():
     def __init__(self):
@@ -12,9 +27,8 @@ class openloop_move():
         # What to do you ctrl + c    
         rospy.on_shutdown(self.shutdown)
         
-        # turtlebot_id = 'red' # might need to change this. If unsure or doesn't work, check rostopic list
-        # self.cmd_vel = rospy.Publisher('/' + turtlebot_id + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-        self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+        self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+        # self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
      
     #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
         self.update_rate = 10
@@ -50,7 +64,7 @@ class openloop_move():
     def turn_right(self, time, speed=45):
         # default speed is turning at 45 deg/s
         turn_right_cmd = Twist()
-        tspeed=45urn_right_cmd.linear.x = 0
+        turn_right_cmd.linear.x = 0
         turn_right_cmd.angular.z = radians(speed); # convert 45 deg/s to radians/s
         rospy.loginfo("turn_right for {0} s at speed {1} deg/s".format(time, speed))
         for x in range(0,time*self.update_rate):
@@ -66,12 +80,22 @@ class openloop_move():
         for x in range(0,time*self.update_rate):
             self.cmd_vel.publish(turn_left_cmd)
             self.r.sleep()
+    def curve_left(self, time):
+        curve_left_cmd = Twist()
+        curve_left_cmd.linear.x = 0.2
+        curve_left_cmd.angular.z = -radians(45); # convert 45 deg/s to radians/s
+        rospy.loginfo("turn left for {0} s at speed {1} def/s".format(time, speed))
+        for x in range(0,time*self.update_rate):
+            self.cmd_vel.publish(curve_left_cmd)
+            self.r.sleep()
  
 if __name__ == '__main__':
     # try:
+    encoder_listener = EncoderListener()
     draw_tri = openloop_move()
     draw_tri.go_forward(2)
-    draw_tri.turn_right(2, speed=90)
+    # draw_tri.turn_right(2, speed=90)
+    # draw_tri.curve_left(3)
     # draw_tri.go_forward(2)
     # draw_tri.turn_right(4, speed=90)
     # draw_tri.go_forward(2)
