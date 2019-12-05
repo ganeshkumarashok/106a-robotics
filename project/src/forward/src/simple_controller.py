@@ -121,7 +121,8 @@ class open_loop_move():
         # initiliaze
         # rospy.init_node('drawasquare', anonymous=False)
 
-        # What to do you ctrl + c    
+        # What to do you ctrl + c
+        self.encoder = EncoderListener()    
         rospy.on_shutdown(self.shutdown)
         
         self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
@@ -131,7 +132,7 @@ class open_loop_move():
         self.update_rate = 10
         self.r = rospy.Rate(self.update_rate);
 
-        self.encoder = EncoderListener()
+        
         
     def shutdown(self):
         # stop turtlebot
@@ -215,7 +216,24 @@ class open_loop_move():
 
 
         # while 
+ 
 
+class PathPlanner():
+
+    def __init__(self):
+        rospy.on_shutdown(self.shutdown)
+        self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+        self.lin_speed = 0.2
+        self.linear_error_bound = 0.1
+        self.controller = open_loop_move()
+
+    def move_forward_by(self, distance = 1.0):
+        time = distance/(self.lin_speed)
+        self.controller.go_forward(time, speed= self.lin_speed)
+
+    def move_back_by(self, distance = 1.0):
+        time = distance/(self.lin_speed)
+        self.controller.go_backward(time, self.lin_speed)
  
 if __name__ == '__main__':
     encoder_listener = EncoderListener()
