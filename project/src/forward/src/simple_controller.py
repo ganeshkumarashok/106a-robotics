@@ -21,6 +21,10 @@ class EncoderListener():
         self.tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
+        self.cur_linear_x = -999
+        self.cur_linear_y = -999
+        self.cur_angular_z = -999
+
         print("ENCODER LISTENER STARTED")
 
         def callback(data): 
@@ -38,13 +42,79 @@ class EncoderListener():
             # pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
             # print("ORIGINAL")
             # print(data.pose)
+            # print(data.pose.pose.position.x)
+
             # # print(type(data.pose))
             # print("TRANSFORMED")
             # print(pose_transformed)
             # print()
 
+            self.cur_linear_x = data.pose.pose.position.x
+            print(self.cur_linear_x)
+            self.cur_linear_y = data.pose.pose.position.y
+            self.cur_angular_z = data.pose.pose.orientation.z
+
         rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
 
+# def callback(data):
+
+
+#     #print(data.pose.pose.position)
+#     transform = tf_buffer.lookup_transform("base_link",
+#                                "odom", #source frame
+#                                rospy.Time(0), #get the tf at first available time
+#                                rospy.Duration(1.0)) #wait for 1 second
+#     # print("transform")
+#     # print(transform)
+#     # transform.transform.translation.x = 0
+#     # transform.transform.translation.y = 0
+#     # transform.transform.translation.z = 0
+
+#     # pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
+#     # print("ORIGINAL")
+#     # print(data.pose)
+#     # print(data.pose.pose.position.x)
+
+#     # # print(type(data.pose))
+#     # print("TRANSFORMED")
+#     # print(pose_transformed)
+#     # print()
+
+#     self.cur_linear_x = data.pose.pose.position.x
+#     print(self.cur_linear_x )
+#     self.cur_linear_y = data.pose.pose.position.y
+#     self.cur_angular_z = data.pose.pose.orientation.z
+
+# #Define the method which contains the node's main functionality
+# def listener(obj):
+
+#     rospy.init_node('closed_loop_control', anonymous=False)
+
+#     angle = 0
+#     distance = 0
+#     topic = "/" + TURTLEBOT_ID + "/odom/"
+
+#     tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
+#     tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+#     cur_linear_x = -999
+#     cur_linear_y = -999
+#     cur_angular_z = -999
+
+#     print("ENCODER LISTENER STARTED")
+
+#     #Create a new instance of the rospy.Subscriber object which we can 
+#     #use to receive messages of type std_msgs/String from the topic /chatter_talk.
+#     #Whenever a new message is received, the method callback() will be called
+#     #with the received message as its first argument.
+#     # rospy.Subscriber("my_chatter_talk", TimestampString, callback)
+#     rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
+
+
+#     #Wait for messages to arrive on the subscribed topics, and exit the node
+#     #when it is killed with Ctrl+C
+#     # rospy.spin()
+#     r.sleep()
 
 class open_loop_move():
     def __init__(self):
@@ -60,6 +130,8 @@ class open_loop_move():
     #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
         self.update_rate = 10
         self.r = rospy.Rate(self.update_rate);
+
+        self.encoder = EncoderListener()
         
     def shutdown(self):
         # stop turtlebot
@@ -131,6 +203,19 @@ class open_loop_move():
         for x in range(0,time*self.update_rate):
             self.cmd_vel.publish(curve_right_cmd)
             self.r.sleep()
+    def turn_left_angle(self, angle, speed=20):
+        turn_left_angle_cmd = Twist()
+        turn_left_angle_cmd.linear.x = 0
+        print('sdfjk')
+        cur_x = self.encoder.cur_linear_x
+        cur_y = self.encoder.cur_linear_y
+        cur_z = self.encoder.cur_angular_z
+
+        print("x: ", cur_x)
+
+
+        # while 
+
  
 if __name__ == '__main__':
     encoder_listener = EncoderListener()
@@ -138,17 +223,18 @@ if __name__ == '__main__':
     # draw_tri.curve_left(5)
     # draw_tri.go_forward(3, speed=0.9)
     # draw_tri.go_backward(3, speed = 0.3)
-    draw_tri.go_forward(2)
-    # draw_tri.go_backward(2)
     # draw_tri.go_forward(2)
     # draw_tri.go_backward(2)
     # draw_tri.go_forward(2)
     # draw_tri.go_backward(2)
-    draw_tri.turn_right(2, speed=90)
+    # draw_tri.go_forward(2)
+    # draw_tri.go_backward(2)
+    # draw_tri.turn_right(2, speed=90)
     # draw_tri.curve_left(3)
     # draw_tri.go_forward(2)
     # draw_tri.turn_right(4, speed=90)
     # draw_tri.go_forward(2)
+    draw_tri.turn_left_angle(200)
     # draw_tri.shutdown()
     # except:
         # rospy.loginfo("node terminated.")
