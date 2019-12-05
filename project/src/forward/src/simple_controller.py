@@ -29,22 +29,24 @@ class EncoderListener():
                                        "odom", #source frame
                                        rospy.Time(0), #get the tf at first available time
                                        rospy.Duration(1.0)) #wait for 1 second
-            print("transform")
-            print(transform)
-            transform.transform.translation.x = 0
-            transform.transform.translation.y = 0
-            transform.transform.translation.z = 0
+            # print("transform")
+            # print(transform)
+            # transform.transform.translation.x = 0
+            # transform.transform.translation.y = 0
+            # transform.transform.translation.z = 0
 
-            pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
-            print("ORIGINAL")
-            print(data.pose)
-            print("TRANSFORMED")
-            print(pose_transformed)
+            # pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
+            # print("ORIGINAL")
+            # print(data.pose)
+            # # print(type(data.pose))
+            # print("TRANSFORMED")
+            # print(pose_transformed)
+            # print()
 
         rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
 
 
-class openloop_move():
+class open_loop_move():
     def __init__(self):
         # initiliaze
         # rospy.init_node('drawasquare', anonymous=False)
@@ -105,27 +107,44 @@ class openloop_move():
         for x in range(0,time*self.update_rate):
             self.cmd_vel.publish(turn_left_cmd)
             self.r.sleep()
-    def curve_left(self, time):
+    def curve_left(self, time, lin_speed=0.2, ang_speed=20):
         curve_left_cmd = Twist()
-        curve_left_cmd.linear.x = 0.2
-        curve_left_cmd.angular.z = -radians(45); # convert 45 deg/s to radians/s
-        rospy.loginfo("turn left for {0} s at speed {1} def/s".format(time, speed))
+        curve_left_cmd.linear.x = lin_speed
+        curve_left_cmd.linear.y = 0
+        curve_left_cmd.linear.z = 0
+        curve_left_cmd.angular.z = radians(ang_speed); # convert 45 deg/s to radians/s
+        curve_left_cmd.angular.x = 0
+        curve_left_cmd.angular.y = 0
+        rospy.loginfo("turn left for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
         for x in range(0,time*self.update_rate):
             self.cmd_vel.publish(curve_left_cmd)
+            self.r.sleep()
+    def curve_right(self, time, lin_speed=0.2, ang_speed=20):
+        curve_right_cmd = Twist()
+        curve_right_cmd.linear.x = lin_speed
+        curve_right_cmd.linear.y = 0
+        curve_right_cmd.linear.z = 0
+        curve_right_cmd.angular.z = -radians(ang_speed); # convert 45 deg/s to radians/s
+        curve_right_cmd.angular.x = 0
+        curve_right_cmd.angular.y = 0
+        rospy.loginfo("turn left for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
+        for x in range(0,time*self.update_rate):
+            self.cmd_vel.publish(curve_right_cmd)
             self.r.sleep()
  
 if __name__ == '__main__':
     encoder_listener = EncoderListener()
-    draw_tri = openloop_move()
+    draw_tri = open_loop_move()
+    # draw_tri.curve_left(5)
+    # draw_tri.go_forward(3, speed=0.9)
+    # draw_tri.go_backward(3, speed = 0.3)
     draw_tri.go_forward(2)
-    draw_tri.go_backward(2)
-    draw_tri.go_forward(2)
-    draw_tri.go_backward(2)
-    draw_tri.go_forward(2)
-    draw_tri.go_backward(2)
-    draw_tri.go_forward(2)
-    draw_tri.go_backward(2)
-    # draw_tri.turn_right(2, speed=90)
+    # draw_tri.go_backward(2)
+    # draw_tri.go_forward(2)
+    # draw_tri.go_backward(2)
+    # draw_tri.go_forward(2)
+    # draw_tri.go_backward(2)
+    draw_tri.turn_right(2, speed=90)
     # draw_tri.curve_left(3)
     # draw_tri.go_forward(2)
     # draw_tri.turn_right(4, speed=90)

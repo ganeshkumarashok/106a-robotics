@@ -38,7 +38,7 @@ class GoForward():
 	# Create a publisher which can "talk" to TurtleBot and tell it to move
         # Tip: You may need to change cmd_vel_mux/input/navi to /cmd_vel if you're not using TurtleBot2
 
-        turtlebot_id = 'red' # might need to change this. If unsure, check rostopic list
+        turtlebot_id = 'yellow' # might need to change this. If unsure, check rostopic list
         self.cmd_vel = rospy.Publisher('/' + turtlebot_id + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
      
 	#TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ
