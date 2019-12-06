@@ -6,15 +6,15 @@ from nav_msgs.msg import Odometry
 import tf2_ros
 import tf2_geometry_msgs
 from math import radians, modf, pi
+import math
+import numpy as np
 
-TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
-# cur_linear_x = -999
-# cur_linear_y = -999
-# cur_linear_z = -999
+# TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
+# moving_cmd_topic = '/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi'
+# odom_reading_topic = '/' + TURTLEBOT_ID + '/odom/'
 
-# cur_angular_x = -999
-# cur_angular_y = -999
-# cur_angular_z = -999
+moving_cmd_topic = '/cmd_vel_mux/input/navi'
+odom_reading_topic = '/odom'
 
 # class EncoderListener():
 # 	def __init__(self):
@@ -63,15 +63,37 @@ TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, 
 
 # 		rospy.Subscriber("/" + TURTLEBOT_ID + "/odom/", Odometry, callback)
 
+def quaternion_to_euler(x, y, z, w):
 
-#Define the method which contains the node's main functionality
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll = math.atan2(t0, t1)
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch = math.asin(t2)
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw = math.atan2(t3, t4)
+    return yaw, pitch, roll
+
+def euler_to_quaternion(roll, pitch, yaw):
+
+        qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+        qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+        qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+
+        return qx, qy, qz, qw
+
+# define global function that constantly read odom reading
 def listener():
 
 	rospy.init_node('closed_loop_control', anonymous=False)
 
 	angle = 0
 	distance = 0
-	topic = "/" + TURTLEBOT_ID + "/odom/"
+	# topic = "/" + TURTLEBOT_ID + "/odom/"
 
 	tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
 	tf_listener = tf2_ros.TransformListener(tf_buffer)
@@ -104,18 +126,30 @@ def listener():
 		global cur_angular_x
 		global cur_angular_y
 		global cur_angular_z
-		# print("previous x: ", cur_linear_x)
+		global cur_angular_w
+		global cur_yaw
+		global cur_pitch
+		global cur_roll
+
 		cur_linear_x = data.pose.pose.position.x
 		cur_linear_y = data.pose.pose.position.y
-		cur_linear_x = data.pose.pose.position.x
+		cur_linear_z = data.pose.pose.position.z
 
 		cur_angular_x = data.pose.pose.orientation.x
 		cur_angular_y = data.pose.pose.orientation.y
 		cur_angular_z = data.pose.pose.orientation.z
+		cur_angular_w = data.pose.pose.orientation.w
+
+		# each yaw, pitch, roll is between -pi to pi
+		cur_yaw, cur_pitch, cur_roll = quaternion_to_euler(cur_angular_x, cur_angular_y, cur_angular_z, cur_angular_w)
+		# print("yaw: ", cur_yaw)
+		# print("pitch: ", cur_pitch)
+		# print("roll: ", cur_roll)
+
 
 		# print(cur_angular_z)
 
-	sub = rospy.Subscriber(topic, Odometry, callback)
+	sub = rospy.Subscriber(odom_reading_topic, Odometry, callback)
 
 	# only get message in 0.05s, then unsubscribe
 	# rospy.sleep(0.5)
@@ -138,7 +172,7 @@ class open_loop_move():
 		# self.encoder = EncoderListener()    
 		rospy.on_shutdown(self.shutdown)
 		
-		self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+		self.cmd_vel = rospy.Publisher(moving_cmd_topic, Twist, queue_size=10)
 		# self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
 	 
 	#TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
@@ -235,7 +269,7 @@ class open_loop_move():
 			print("current angular_y while moving forward: ", cur_angular_y)
 			print("current angular_z while moving forward: ", cur_angular_z)
 
-	def turn(self, time=None, speed=45, angle=None, z_coor=None):
+	def turn(self, time=None, speed=0.4, angle=None, yaw_coor=None):
 		# counterclockwise is always increasing, and clockwise is always decreasing
 		# starting z orientation angle is always 0, and the reverse (pi or 180 degree) z is 1/-1 depends on which direction it moves
 		# if move counterclockwise, then 0 -> 1 -> -1 -> 0 complete one loop
@@ -253,51 +287,64 @@ class open_loop_move():
 				self.cmd_vel.publish(turn_left_cmd)
 				self.r.sleep()
 		elif angle:
-			starting_z = cur_angular_z
-			# print("start: ", starting_z)
-
-			ending_z = radians(angle)/pi + starting_z
+			if angle > 180 or angle < -180:
+				raise Exception("angle must be smaller than 180 or greater than -180")
+		
+			starting_yaw = cur_yaw
+			ending_yaw = radians(angle) + starting_yaw
 
 			# handle the case where from positive to negative or from negative to positive
-			# Therefore, defined the ending_z as the float after decimal
-			if ending_z > 1:
-				ending_z = -1+round(modf(ending_z)[0], 5)
-			elif ending_z < -1:
-				ending_z = 1+round(modf(ending_z)[0], 5)
-			z_coor = ending_z
-		# because z_coor could be 1 or 0			
-		if z_coor is not None:
+			if ending_yaw > pi:
+				ending_yaw = pi-ending_yaw
+			elif ending_yaw < -pi:
+				ending_yaw = 2*pi+ending_yaw
+			yaw_coor = ending_yaw
+
+			# # x, y, z, w = euler_to_quaternion(0, 0, radians(angle))
+			# turn_cmd = Twist()
+			# turn_cmd.linear.x = 0
+			# turn_cmd.angular.z = speed # convert 45 deg/s to radians/s
+			# # turn_cmd.angular.w = w
+			# rospy.loginfo("turn for {0} s at speed {1} deg/s".format(time, speed))
+			# # for x in range(0,time*self.update_rate):
+			# self.cmd_vel.publish(turn_cmd)
+			# # self.r.sleep()            
+
+		# because z_coor could be 0			
+		if yaw_coor is not None:
+			if yaw_coor > pi or yaw_coor < -pi:
+				raise Exception("yaw_coor must be smaller than pi or greater than -pi")
+
+			# convert euler to quaternion
+			desired_x, desired_y, desired_z, desired_w = euler_to_quaternion(0, 0, yaw_coor)
+
+			print("desired: z:{0} w:{1}".format(desired_z, desired_w))
+
+			if cur_yaw * yaw_coor > 0:
+				if cur_yaw - yaw_coor > 0:
+					speed = -speed
+			elif cur_yaw * yaw_coor < 0:
+				if abs(cur_yaw - yaw_coor) > pi:
+					speed = -speed
+
 			turn_cmd = Twist()
+			turn_cmd.linear.x = 0
+			turn_cmd.angular.z = speed
+
 			rospy.loginfo("turn left for {0} degree at speed {1} def/s".format(angle, speed))
 			rospy.sleep(1)
-			starting_z = cur_angular_z
-			print("start: ", starting_z)
 
-			ending_z = z_coor
-			print("end: ", ending_z)
-			
-			# handle the case where from positive to negative 
-			# Therefore, defined the error as the float after decimal
-			error = ending_z - starting_z
-			if error >= 1:
-				error = -1+round(modf(error)[0], 5)
-			elif error <= -1:
-				error = 1+round(modf(error)[0], 5)
-			print(error)
-
-			# need to tuen this thread
-			while abs(error) > 0.01:
-				turn_cmd.linear.x = 0
-				turn_cmd.linear.y = 0
-				turn_cmd.linear.z = 0
-				turn_cmd.angular.z = min(max(error*p1, 0.3), 2)
+			while abs(desired_z - cur_angular_z) > 0.006 or abs(desired_w - cur_angular_w) > 0.006:
+				if abs(desired_z - cur_angular_z) < 0.2 and abs(desired_w - cur_angular_w) < 0.2:
+					if speed > 0:
+						turn_cmd.angular.z = max(speed * abs(desired_z - cur_angular_z) * p1, 0.2)
+					else:
+						turn_cmd.angular.z = min(speed * abs(desired_z - cur_angular_z) * p1, -0.2)
 				self.cmd_vel.publish(turn_cmd)
-				self.r.sleep()
-				error = ending_z - cur_angular_z
-				if error > 1:
-					error = -1+round(modf(error)[0], 5)
-				elif error < -1:
-					error = 1+round(modf(error)[0], 5)
+				self.r.sleep()   
+				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
+				print("z error: ", abs(desired_z - cur_angular_z))     
+
 
 				# print("current angular_z while moving forward: ", cur_angular_z)
 		# print("current angular_z while turning: ", cur_angular_z)
@@ -366,23 +413,23 @@ if __name__ == '__main__':
 	listener()
 	draw_tri = open_loop_move()
 	rospy.sleep(0.5)
-	print("no moving: ", cur_angular_z)
+	print("no moving: ", cur_yaw)
 	# draw_tri.curve_left(5)
 	# draw_tri.go_forward(3, speed=0.9)
 	# draw_tri.go_backward(3, speed = 0.3)
 	# draw_tri.go_backward(time=2)
 	# draw_tri.go_forward(time=2)
 	# draw_tri.go_backward(2)
-	# draw_tri.go_forward(2)
+	draw_tri.go_forward(2)
 	# draw_tri.go_backward(2)
 	# draw_tri.go_forward(2)
 	# draw_tri.go_backward(2)
-	# draw_tri.turn_right(20, speed=20)
+	# draw_tri.turn_right(2, speed=90)
 	# draw_tri.turn_left(20, speed=20)
 
-	draw_tri.turn(angle=90)
-	# draw_tri.turn(z_coor=0)
-	print("after moving: ", cur_angular_z)
+	# draw_tri.turn(angle=60, speed=0.8)
+	# draw_tri.turn(yaw_coor=-pi/2)
+	print("after moving: ", cur_yaw)
 	
 	# draw_tri.curve_left(2)
 	# draw_tri.go_forward(2)
