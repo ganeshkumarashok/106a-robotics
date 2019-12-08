@@ -45,7 +45,7 @@ def write_pgm_map(file_name, obstacles_lst):
     try:
       fout = open(file_name, 'wb')
     except:
-      print("Cannot open file “, filename, “Exiting … \n")
+      print("Cannot open file, Exiting … \n")
       sys.exit()
 
 
