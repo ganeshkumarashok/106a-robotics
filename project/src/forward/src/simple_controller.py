@@ -122,22 +122,57 @@ class simple_move():
 		# rospy.init_node('drawasquare', anonymous=False)
 
 		# What to do you ctrl + c
-		# self.encoder = EncoderListener()    
+		# self.encoder = EncoderListener()
 		rospy.on_shutdown(self.shutdown)
-		
+
 		self.cmd_vel = rospy.Publisher(moving_cmd_topic, Twist, queue_size=10)
 		# self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
-	 
+
 	#TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
 		self.update_rate = 10
 		self.r = rospy.Rate(self.update_rate);
 
-		
+
 	def shutdown(self):
 		# stop turtlebot
 		rospy.loginfo("Stop Moving")
 		self.cmd_vel.publish(Twist())
 		rospy.sleep(1)
+
+    def go_straight(self, time=None, speed=0.4, distance=None):
+        # proportional control term
+		p1 = 3
+
+        if distance:
+            desired_x = cur_linear_x + math.cos(cur_yaw) * distance
+            desired_y = cur_linear_y + math.sin(cur_yaw) * distance
+
+            go_straight_cmd = Twist()
+			go_straight_cmd.linear.x = speed
+			go_straight_cmd.angular.z = 0
+
+			rospy.loginfo("go to {} at speed {1} def/s".format(yaw_coor, speed))
+			rospy.sleep(1)
+
+			while abs(desired_x - cur_linear_x) > 0.006 or abs(desired_y - cur_linear_y) > 0.006:
+				if abs(desired_x - cur_linear_x) < 0.2 and abs(desired_y - cur_linear_y) < 0.2:
+					if speed > 0:
+						turn_cmd.linear.x = max(speed * abs(desired_x - cur_linear_x) * p1, 0.2)
+					else:
+						turn_cmd.linear.x = min(speed * abs(desired_x - cur_linear_x) * p1, -0.2)
+				self.cmd_vel.publish(go_straight_cmd)
+				self.r.sleep()
+				print("current: x:{0} y:{1}".format(cur_linear_x, cur_linear_y))
+				print("x error: ", abs(desired_x - cur_linear_x))
+        elif time:
+            rospy.loginfo("go for {0} s at speed {1} m/s".format(time, speed))
+    		go_straight_cmd = Twist()
+    		go_straight_cmd.linear.x = speed
+    		go_straight_cmd.angular.z = 0
+
+    		for x in range(0,time*self.update_rate):
+    			self.cmd_vel.publish(go_forward_cmd)
+    			self.r.sleep()
 
 	def go_forward(self, time, speed=0.2):
 		# default speed is moving at 0.2 m/s
@@ -152,9 +187,9 @@ class simple_move():
 		# cur_y = self.encoder.cur_linear_y
 		# cur_z = self.encoder.cur_angular_z
 
-		# print("x: ", cur_x)        
+		# print("x: ", cur_x)
 
-		for x in range(0,time*self.update_rate): 
+		for x in range(0,time*self.update_rate):
 			self.cmd_vel.publish(go_forward_cmd)
 			self.r.sleep()
 
@@ -166,7 +201,7 @@ class simple_move():
 			print("current angular_x while moving forward: ", cur_angular_x)
 			print("current angular_y while moving forward: ", cur_angular_y)
 			print("current angular_z while moving forward: ", cur_angular_z)
-	
+
 	def go_backward(self, time=None, speed=0.2, distance=None):
 		# default speed is moving at 0.2 m/s
 		if not distance: # when we don't move by distance
@@ -175,7 +210,7 @@ class simple_move():
 			go_backward_cmd.linear.x = -speed
 			go_backward_cmd.angular.z = 0
 
-			for x in range(0,time*self.update_rate): 
+			for x in range(0,time*self.update_rate):
 				self.cmd_vel.publish(go_backward_cmd)
 				self.r.sleep()
 
@@ -194,7 +229,7 @@ class simple_move():
 		rospy.loginfo("turn_right for {0} s at speed {1} deg/s".format(time, speed))
 		for x in range(0,time*self.update_rate):
 			self.cmd_vel.publish(turn_right_cmd)
-			self.r.sleep()            
+			self.r.sleep()
 
 			print()
 			print("current linear_x while moving forward: ", cur_linear_x)
@@ -224,13 +259,14 @@ class simple_move():
 
 	def turn(self, time=None, speed=0.4, angle=None, yaw_coor=None):
 		# counterclockwise is always increasing, and clockwise is always decreasing
-		# starting z orientation angle is always 0, and the reverse (pi or 180 degree) z is 1/-1 depends on which direction it moves
+		# starting z orientation angle is always 0,
+        # and the reverse (pi or 180 degree) z is 1/-1 depends on which direction it moves
 		# if move counterclockwise, then 0 -> pi -> -pi -> 0 complete one loop
 		# if move clockwise, then 0 -> -pi -> pi -> 0 complete one loop
-		
+
 		# proportional control term
-		p1 = 3 
-		
+		p1 = 3
+
 		if time:
 			turn_cmd = Twist()
 			turn_cmd.linear.x = 0
@@ -242,7 +278,7 @@ class simple_move():
 		elif angle:
 			if angle > 180 or angle < -180:
 				raise Exception("angle must be smaller than 180 or greater than -180")
-		
+
 			starting_yaw = cur_yaw
 			ending_yaw = radians(angle) + starting_yaw
 
@@ -251,10 +287,10 @@ class simple_move():
 				ending_yaw = pi-ending_yaw
 			elif ending_yaw < -pi:
 				ending_yaw = 2*pi+ending_yaw
-			yaw_coor = ending_yaw  
-			rospy.loginfo("turn for {0} degree at speed {1} rad/s".format(angle, speed))      
+			yaw_coor = ending_yaw
+			rospy.loginfo("turn for {0} degree at speed {1} rad/s".format(angle, speed))
 
-		# because z_coor could be 0			
+		# because z_coor could be 0
 		if yaw_coor is not None:
 			if yaw_coor > pi or yaw_coor < -pi:
 				raise Exception("yaw_coor must be smaller than pi or greater than -pi")
@@ -285,15 +321,9 @@ class simple_move():
 					else:
 						turn_cmd.angular.z = min(speed * abs(desired_z - cur_angular_z) * p1, -0.2)
 				self.cmd_vel.publish(turn_cmd)
-				self.r.sleep()   
+				self.r.sleep()
 				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
-				print("z error: ", abs(desired_z - cur_angular_z))     
-
-
-				# print("current angular_z while moving forward: ", cur_angular_z)
-		# print("current angular_z while turning: ", cur_angular_z)
-
-
+				print("z error: ", abs(desired_z - cur_angular_z))
 
 	def curve_left(self, time, lin_speed=0.2, ang_speed=20):
 		curve_left_cmd = Twist()
@@ -322,9 +352,9 @@ class simple_move():
 		cur_z = self.encoder.cur_angular_z
 
 		print("x: ", cur_x)
- 
 
-class PathPlanner():
+
+# class PathPlanner():
 
 
 	# my_map.yaml
@@ -349,14 +379,14 @@ class PathPlanner():
 
 	# def move_back_by(self, distance = 1.0):
 	# 	time = distance/(self.lin_speed)
-	# 	self.controller.go_backward(time, self.lin_speed)
-	def __init__(self):
-		rospy.on_shutdown(self.shutdown)
-		self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-		self.lin_speed = 0.2
-		self.linear_error_bound = 0.1
-		self.controller = open_loop_move()
- 
+	# # 	self.controller.go_backward(time, self.lin_speed)
+	# def __init__(self):
+	# 	rospy.on_shutdown(self.shutdown)
+	# 	self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+	# 	self.lin_speed = 0.2
+	# 	self.linear_error_bound = 0.1
+	# 	self.controller = open_loop_move()
+
 if __name__ == '__main__':
 	# encoder_listener = EncoderListener()
 	listener()
@@ -379,18 +409,18 @@ if __name__ == '__main__':
 	# draw_tri.turn(angle=60, speed=0.8)
 	# draw_tri.turn(yaw_coor=-pi/2)
 	print("after moving: ", cur_yaw)
-	
+
 	# draw_tri.curve_left(2)
 	# draw_tri.go_forward(2)
 	# draw_tri.turn_right(4, speed=90)
 	# draw_tri.go_forward(2)
-	
+
 	# draw_tri.shutdown()
 	# except:
 		# rospy.loginfo("node terminated.")
 
 """
-Important: it looks like the yellow turtlebot has some offet in the positive z and negative z. 
-Run the above code for several times, you will realize this issue. The positive z cover less 
+Important: it looks like the yellow turtlebot has some offet in the positive z and negative z.
+Run the above code for several times, you will realize this issue. The positive z cover less
 area than negative z. What is the reason?
 """
