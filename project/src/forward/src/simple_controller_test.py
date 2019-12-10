@@ -8,6 +8,14 @@ import tf2_geometry_msgs
 from math import radians, modf, pi
 import math
 import numpy as np
+import pickle
+
+import motion_analytics
+import scipy.spatial
+
+import time
+
+
 
 TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
 moving_cmd_topic = '/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi'
@@ -383,13 +391,36 @@ class simple_move():
 	# 	self.controller = open_loop_move()
 
 if __name__ == '__main__':
+	data = motion_analytics.load_mocap_csv('human_data/pose1a.csv')
+	pedestrain = motion_analytics.get_xz_one_agent(data)
+	threshold = motion_analytics.get_min_distance(data)
+
 	# encoder_listener = EncoderListener()
 	listener()
-	draw_tri = simple_move()
+	turtlebot = simple_move()
 	rospy.sleep(0.5)
-	print("no moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
-	draw_tri.go_straight(distance=1, speed=0.4)
-	print("after moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+	index = 0
+	# print("no moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+	cur_human_x = pedestrain[index][1]
+	cur_human_y = pedestrain[index][2]
+	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_human_x)**2 + (cur_linear_y - cur_human_y)**2)
+	print("initial distance: ", turtlebot_distance_to_human)
+
+	while threshold <= turtlebot_distance_to_human:
+		cur_human_x = pedestrain[index][1]
+		cur_human_y = pedestrain[index][2]
+		turtlebot.go_straight(time=999, speed=0.2)
+		turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_human_x)**2 + (cur_linear_y - cur_human_y)**2)
+		print("distance: ", turtlebot_distance_to_human)
+		index += 1
+		time.sleep(0.017)
+	turtlebot.shutdown()
+
+	# turtlebot.go_straight(distance=1, speed=0.4)
+	# print("after moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+	
+
+
 
 	# # draw_tri.curve_left(5)
 	# # draw_tri.go_forward(3, speed=0.9)
