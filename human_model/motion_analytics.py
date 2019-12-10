@@ -42,12 +42,6 @@ def load_mocap_csv(file):
 #print(data.iloc[0, 1])
 
 #sns.heatmap(data.isnull(), cbar=False);
-def euclidean_distance(first_pos, second_pos):
-    if ((len(first_pos) != 3) or (len(second_pos) != 3)):
-        print("Pos argument is incomplete")
-        return None
-    return ((first_pos[0] - second_pos[0])^2 + (first_pos[1] - second_pos[1])^2 + (first_pos[2] - second_pos[2])^2)^0.5
-
 def get_min_distance(data):
     min_dist = 100
     for i in range(len(data.index)):
@@ -76,15 +70,13 @@ def get_xz_one_agent(data):
         o_z = data.iloc[i][7]
         if np.isnan(o_x) or np.isnan(o_z):
             continue
-        tupl = (time, o_x, o_z)
-        print(tupl)
-        
+        tupl = (time, o_x, o_z)        
         list_of_positions.append((time, o_x, o_z))
     
     #print(list_of_positions)
     #print("Length: ", len(list_of_positions))
     return list_of_positions
         
-print(get_min_distance(data))
-print(get_xz_one_agent(data))
+#print(get_min_distance(data))
+#print(get_xz_one_agent(data))
 
