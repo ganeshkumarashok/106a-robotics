@@ -404,17 +404,14 @@ if __name__ == '__main__':
 
 
 	turtlebot = simple_move()
-	rospy.sleep(0.5)
+	rospy.sleep(5.5)
 	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
-	# turtlebot.go_straight(distance=1, speed=0.4)
-	# turtlebot.turn(angle=90, speed=0.4)
-	# turtlebot.turn(time=20)
-	# index = 0 
-	# turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-	# THRESHOLD = 1
+	index = 0 
+	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+	THRESHOLD = 1
 
-	goal = (0, 0)
+	goal = (-1, 2)
 	# print(cur_yaw)
 
 	desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
@@ -443,56 +440,54 @@ if __name__ == '__main__':
 
 	# # turtlebot.turn(yaw_coor=-pi/2)
 	turtlebot.turn(yaw_coor=desired_coor)
-
-	#turtlebot.turn(yaw_coor=-math.pi/2)
-	# turtlebot.turn(angle=120)
+	rospy.sleep(0.5)
 	
 
 	# ########### With OptiTrack ###########
-	# # threshold = motion_analytics.get_min_distance(data)
-	# while not rospy.is_shutdown():
-	# 	# rospy.sleep(2.5)
-	# 	# print(cur_linear_x)
-	# 	# print(cur_linear_y)
-	# 	# print(cur_ped_x)
-	# 	# print(cur_ped_y)
+	# threshold = motion_analytics.get_min_distance(data)
+	while not rospy.is_shutdown():
+		# rospy.sleep(2.5)
+		# print(cur_linear_x)
+		# print(cur_linear_y)
+		# print(cur_ped_x)
+		# print(cur_ped_y)
 
-	# 	# while not rospy.is_shutdown(): 
-	# 	if not cur_linear_x or not cur_ped_x: 
-	# 		if not cur_linear_x: 
-	# 			print("curlinx not def")
-	# 		if not cur_ped_x: 
-	# 			print("curpedx not def")
-	# 		continue
+		# while not rospy.is_shutdown(): 
+		if not cur_linear_x or not cur_ped_x: 
+			if not cur_linear_x: 
+				print("curlinx not def")
+			if not cur_ped_x: 
+				print("curpedx not def")
+			continue
 
 
-	# 	# print("initial distance: ", turtlebot_distance_to_human)
-	# 	print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
-	# 	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
-	# 	print("threshold: ", THRESHOLD)
+		# print("initial distance: ", turtlebot_distance_to_human)
+		print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
+		print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+		print("threshold: ", THRESHOLD)
 
-	# 		# break
+			# break
 
-	# 	# go straight until close to stop threshold, then stop
+		# go straight until close to stop threshold, then stop
 
-	# 	turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
+		turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
 
-	# 	while turtlebot_distance_to_goal > 0.1:
-	# 		turtlebot_speed = 0.1 if THRESHOLD <= turtlebot_distance_to_human else 0
-	# 		turtlebot.go_straight(time=0.1, speed=turtlebot_speed)
-	# 		turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
-	# 		turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+		while turtlebot_distance_to_goal > 0.1:
+			turtlebot_speed = 0.3 if THRESHOLD <= turtlebot_distance_to_human else 0
+			turtlebot.go_straight(time=0.1, speed=turtlebot_speed)
+			turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
+			turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
 			
-	# 		#if index%10 == 0:
-	# 		print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
-	# 		print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
-	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-	# 		print("goal-robot distance: ", turtlebot_distance_to_goal)
+			#if index%10 == 0:
+			print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
+			print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+			print("pedestrain-robot distance: ", turtlebot_distance_to_human)
+			print("goal-robot distance: ", turtlebot_distance_to_goal)
 			
-	# 		index += 1
-	# 		time.sleep(0.017)
+			index += 1
+			time.sleep(0.017)
 
-	# 	break
+		break
 
 	# print("pedestrain out of safety net. Continue moving!")
 	# turtlebot.go_straight(time=2, speed=0.4)
