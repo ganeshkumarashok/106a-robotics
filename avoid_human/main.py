@@ -31,8 +31,12 @@ import time
 # global cur_ped_x
 # global cur_ped_y
 
-# cur_ped_x = None
-# cur_ped_y = None
+cur_ped_x = None
+cur_ped_y = None
+
+cur_linear_x = None
+cur_linear_y = None
+
 
 # TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
 
@@ -69,9 +73,22 @@ def listener():
 		global cur_yaw
 		global cur_pitch
 		global cur_roll
+	# print(cur_yaw)
+
+	# desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
+
+
+	# while desired_coor > pi:
+	# 	desired_coor -= pi * 2
+	# while desired_coor < -pi: 
+	# 	desired_coor += pi * 2
+
+	# print("turtlebot turned for {0}".format(desired_coor))
+
+	# turtlebot.turn(yaw_coor=desired_coor)
 
 		# cur_linear_x = data.pose.pose.position.x
-		# cur_linear_y = data.pose.pose.position.y
+		# cur_lidesired_znear_y = data.pose.pose.position.y
 		# cur_linear_z = data.pose.pose.position.z
 		# print(cur_linear_x)
 		cur_linear_x = data.pose.position.x
@@ -88,8 +105,8 @@ def listener():
 		# cur_angular_w = data.pose.pose.orientation.w
 
 		cur_angular_x = data.pose.orientation.x
-		cur_angular_y = data.pose.orientation.y
-		cur_angular_z = data.pose.orientation.z
+		cur_angular_y = data.pose.orientation.z
+		cur_angular_z = data.pose.orientation.y
 		cur_angular_w = data.pose.orientation.w
 
 		# each yaw, pitch, roll is between -pi to pi
@@ -103,7 +120,7 @@ def listener():
 
 		# print("ped_x: ", data.pose.position.x)
 		# print("not none: ", cur_ped_x)
-		cur_ped_y = data.pose.position.y
+		cur_ped_y = data.pose.position.z
 
 		# print("ped_y: ", data.pose.position.y)
 		# print("not none: ", cur_ped_y)
@@ -133,12 +150,11 @@ class simple_move():
 		# What to do you ctrl + c
 		rospy.on_shutdown(self.shutdown)
 
-		self.cmd_vel = rospy.Publisher(moving_cmd_topic, Twist, queue_size=10)
-
 		#TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ = 1/10 s = 0.1s
 		self.update_rate = 10
-		self.r = rospy.Rate(self.update_rate);
+		self.r = rospy.Rate(self.update_rate)
 
+		self.cmd_vel = rospy.Publisher(moving_cmd_topic, Twist, queue_size=10)
 
 	def shutdown(self):
 		# stop turtlebot
@@ -233,7 +249,6 @@ class simple_move():
 			if yaw_coor > pi or yaw_coor < -pi:
 				raise Exception("yaw_coor must be smaller than pi or greater than -pi")
 
-			# convert euler to quaternion
 			desired_x, desired_y, desired_z, desired_w = euler_to_quaternion(0, 0, yaw_coor)
 
 			print("desired: z:{0} w:{1}".format(desired_z, desired_w))
@@ -252,12 +267,15 @@ class simple_move():
 			rospy.loginfo("turn to {0} yaw coordinate at speed {1} def/s".format(yaw_coor, speed))
 			rospy.sleep(1)
 
-			while abs(desired_z - cur_angular_z) > 0.006 or abs(desired_w - cur_angular_w) > 0.006:
+			while abs(desired_z - cur_angular_z) > 0.02 or abs(desired_w - cur_angular_w) > 0.02:
+				# print("cur_yaw: ", cur_yaw)
 				if abs(desired_z - cur_angular_z) < 0.2 and abs(desired_w - cur_angular_w) < 0.2:
 					if speed > 0:
 						turn_cmd.angular.z = max(speed * abs(desired_z - cur_angular_z) * p1, 0.2)
 					else:
 						turn_cmd.angular.z = min(speed * abs(desired_z - cur_angular_z) * p1, -0.2)
+				print("z_diff: ", abs(desired_z - cur_angular_z))
+				print("w_diff: ", abs(desired_w - cur_angular_w))
 				self.cmd_vel.publish(turn_cmd)
 				self.r.sleep()
 				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
@@ -296,7 +314,20 @@ if __name__ == '__main__':
 	# listener()
 	# turtlebot = simple_move()
 	# rospy.sleep(0.5)
-	# index = 60
+	# index = 60goal = (0, 0)
+	# print(cur_yaw)
+
+	# desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
+
+
+	# while desired_coor > pi:
+	# 	desired_coor -= pi * 2
+	# while desired_coor < -pi: 
+	# 	desired_coor += pi * 2
+
+	# print("turtlebot turned for {0}".format(desired_coor))
+
+	# turtlebot.turn(yaw_coor=desired_coor)
 	# # print("no moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 	# cur_human_x = pedestrain[index][1]
 	# cur_human_y = pedestrain[index][2] - 1
@@ -332,54 +363,83 @@ if __name__ == '__main__':
 	# turtlebot.go_straight(time=2, speed=0.4)
 	# turtlebot.go_straight(speed=0.4)
 	# turtlebot.shutdown()
-
-	########### With OptiTrack ###########
-	# threshold = motion_analytics.get_min_distance(data)
 	listener()
-	# rospy.sleep(2.5)
-	threshold = 1
-	# print(cur_linear_x)
-	# print(cur_linear_y)
-	# print(cur_ped_x)
-	# print(cur_ped_y)
 
-	# while not rospy.is_shutdown(): 
-	# 	if not cur_linear_x or not cur_ped_x: 
-	# 		continue
 
 	turtlebot = simple_move()
 	rospy.sleep(0.5)
+	# turtlebot.turn(angle=90, speed=0.4)
 	index = 0 
 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-	print("initial distance: ", turtlebot_distance_to_human)
-	print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
-	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+	THRESHOLD = 1
 
-		# break
+	goal = (0, 0)
+	# print(cur_yaw)
 
-	# # go straight until close to stop threshold, then stop
-	# while threshold <= turtlebot_distance_to_human:
-	# 	turtlebot.go_straight(time=0.1, speed=0.2)
-	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-		
-	# 	if index%10 == 0:
+	desired_coor = pi - math.atan((goal[0] - cur_linear_x) / (goal[1] - cur_linear_y))
+	if desired_coor > pi:
+		desired_coor = desired_coor - 2 * pi
+	elif desired_coor < -pi:
+		desired_coor = 2 * pi + desired_coor
+
+
+	# while desired_coor > pi:
+	# 	desired_coor -= pi * 2
+	# while desired_coor < -pi: 
+	# 	desired_coor += pi * 2
+
+	print("turtlebot turned for {0}".format(desired_coor))
+
+	turtlebot.turn(yaw_coor=desired_coor)
+	#turtlebot.turn(yaw_coor=-math.pi/2)
+	# turtlebot.turn(yaw_coor=math.pi/2)
+	
+
+	# ########### With OptiTrack ###########
+	# # threshold = motion_analytics.get_min_distance(data)
+	# while not rospy.is_shutdown():
+	# 	# rospy.sleep(2.5)
+	# 	# print(cur_linear_x)
+	# 	# print(cur_linear_y)
+	# 	# print(cur_ped_x)
+	# 	# print(cur_ped_y)
+
+	# 	# while not rospy.is_shutdown(): 
+	# 	if not cur_linear_x or not cur_ped_x: 
+	# 		if not cur_linear_x: 
+	# 			print("curlinx not def")
+	# 		if not cur_ped_x: 
+	# 			print("curpedx not def")
+	# 		continue
+
+
+	# 	# print("initial distance: ", turtlebot_distance_to_human)
+	# 	print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
+	# 	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+	# 	print("threshold: ", THRESHOLD)
+
+	# 		# break
+
+	# 	# go straight until close to stop threshold, then stop
+
+	# 	turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
+
+	# 	while turtlebot_distance_to_goal > 0.1:
+	# 		turtlebot_speed = 0.1 if THRESHOLD <= turtlebot_distance_to_human else 0
+	# 		turtlebot.go_straight(time=0.1, speed=turtlebot_speed)
+	# 		turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
+	# 		turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+			
+	# 		#if index%10 == 0:
+	# 		print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
+	# 		print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-		
-	# 	index += 1
-	# 	time.sleep(0.017)
+	# 		print("goal-robot distance: ", turtlebot_distance_to_goal)
+			
+	# 		index += 1
+	# 		time.sleep(0.017)
 
-	# print("pedestrain detect! Stop")
-	# turtlebot.shutdown()
-
-	# # stop while pedestrain-robot distance below the threshold
-	# while threshold >= turtlebot_distance_to_human:
-	# 	turtlebot.shutdown()
-	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-
-	# 	if index%10 == 0:
-	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-	# 	index += 1
-	# 	time.sleep(0.017)
+	# 	break
 
 	# print("pedestrain out of safety net. Continue moving!")
 	# turtlebot.go_straight(time=2, speed=0.4)
