@@ -28,7 +28,11 @@ from util import quaternion_to_euler, euler_to_quaternion
 
 import time
 
+# global cur_ped_x
+# global cur_ped_y
 
+# cur_ped_x = None
+# cur_ped_y = None
 
 # TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, check rostopic list
 
@@ -39,7 +43,7 @@ moving_cmd_topic = '/cmd_vel_mux/input/navi'
 # odom_reading_topic = '/odom/'
 odom_reading_topic = '/vrpn_client_node/tb/pose'
 
-ped_reading_topic = '/vrpn_client_node/ped/pose'
+ped_reading_topic = '/vrpn_client_node/cap/pose'
 
 # define global function that constantly read odom reading
 def listener():
@@ -69,10 +73,14 @@ def listener():
 		# cur_linear_x = data.pose.pose.position.x
 		# cur_linear_y = data.pose.pose.position.y
 		# cur_linear_z = data.pose.pose.position.z
-
+		# print(cur_linear_x)
 		cur_linear_x = data.pose.position.x
 		cur_linear_y = data.pose.position.y
 		cur_linear_z = data.pose.position.z
+
+		# print("in the turtlebot callback")
+		# print(data.pose.position.x)
+		# print(cur_linear_x)
 
 		# cur_angular_x = data.pose.pose.orientation.x
 		# cur_angular_y = data.pose.pose.orientation.y
@@ -88,20 +96,27 @@ def listener():
 		cur_yaw, cur_pitch, cur_roll = quaternion_to_euler(cur_angular_x, cur_angular_y, cur_angular_z, cur_angular_w)
 
 	def pedestrain_callback(data):
-
 		global cur_ped_x
 		global cur_ped_y
-		
+
 		cur_ped_x = data.pose.position.x
+
+		# print("ped_x: ", data.pose.position.x)
+		# print("not none: ", cur_ped_x)
 		cur_ped_y = data.pose.position.y
 
-	
-	global tb_sub
-	global pd_sub
+		# print("ped_y: ", data.pose.position.y)
+		# print("not none: ", cur_ped_y)
 
+		# print("in the pedestrain callback")
+
+	
+	# tb_sub.unregister()
 	# sub = rospy.Subscriber(odom_reading_topic, Odometry, turtlebot_callback)
-	tb_sub = rospy.Subscriber(odom_reading_topic, PoseStamped, turtlebot_callback)
-	pd_sub = rospy.Subscriber(ped_reading_topic, PoseStamped, pedestrain_callback)
+	rospy.Subscriber(ped_reading_topic, PoseStamped, pedestrain_callback)
+	rospy.Subscriber(odom_reading_topic, PoseStamped, turtlebot_callback)
+	# tb_sub.unregister()
+	# pd_sub.unregister()
 
 
 	# only get message in 0.05s, then unsubscribe
@@ -315,41 +330,57 @@ if __name__ == '__main__':
 
 	# print("pedestrain out of safety net. Continue moving!")
 	# turtlebot.go_straight(time=2, speed=0.4)
-	# # turtlebot.go_straight(speed=0.4)
-	# # turtlebot.shutdown()
+	# turtlebot.go_straight(speed=0.4)
+	# turtlebot.shutdown()
 
-	threshold = motion_analytics.get_min_distance(data)
+	########### With OptiTrack ###########
+	# threshold = motion_analytics.get_min_distance(data)
 	listener()
+	# rospy.sleep(2.5)
+	threshold = 1
+	# print(cur_linear_x)
+	# print(cur_linear_y)
+	# print(cur_ped_x)
+	# print(cur_ped_y)
+
+	# while not rospy.is_shutdown(): 
+	# 	if not cur_linear_x or not cur_ped_x: 
+	# 		continue
+
 	turtlebot = simple_move()
 	rospy.sleep(0.5)
 	index = 0 
 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
 	print("initial distance: ", turtlebot_distance_to_human)
+	print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
+	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
-	# go straight until close to stop threshold, then stop
-	while threshold <= turtlebot_distance_to_human:
-		turtlebot.go_straight(time=0.1, speed=0.2)
-		turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+		# break
+
+	# # go straight until close to stop threshold, then stop
+	# while threshold <= turtlebot_distance_to_human:
+	# 	turtlebot.go_straight(time=0.1, speed=0.2)
+	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
 		
-		if index%10 == 0:
-			print("pedestrain-robot distance: ", turtlebot_distance_to_human)
+	# 	if index%10 == 0:
+	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
 		
-		index += 1
-		time.sleep(0.017)
+	# 	index += 1
+	# 	time.sleep(0.017)
 
-	print("pedestrain detect! Stop")
-	turtlebot.shutdown()
+	# print("pedestrain detect! Stop")
+	# turtlebot.shutdown()
 
-	# stop while pedestrain-robot distance below the threshold
-	while threshold >= turtlebot_distance_to_human:
-		turtlebot.shutdown()
-		turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+	# # stop while pedestrain-robot distance below the threshold
+	# while threshold >= turtlebot_distance_to_human:
+	# 	turtlebot.shutdown()
+	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
 
-		if index%10 == 0:
-			print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-		index += 1
-		time.sleep(0.017)
+	# 	if index%10 == 0:
+	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
+	# 	index += 1
+	# 	time.sleep(0.017)
 
-	print("pedestrain out of safety net. Continue moving!")
-	turtlebot.go_straight(time=2, speed=0.4)
-	turtlebot.shutdown()
+	# print("pedestrain out of safety net. Continue moving!")
+	# turtlebot.go_straight(time=2, speed=0.4)
+	# turtlebot.shutdown()
