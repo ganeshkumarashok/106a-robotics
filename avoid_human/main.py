@@ -91,9 +91,9 @@ def listener():
 		# cur_lidesired_znear_y = data.pose.pose.position.y
 		# cur_linear_z = data.pose.pose.position.z
 		# print(cur_linear_x)
-		cur_linear_x = data.pose.position.x
-		cur_linear_y = data.pose.position.y
-		cur_linear_z = data.pose.position.z
+		cur_linear_x = -data.pose.position.x
+		cur_linear_y = data.pose.position.z
+		cur_linear_z = data.pose.position.y
 
 		# print("in the turtlebot callback")
 		# print(data.pose.position.x)
@@ -111,12 +111,15 @@ def listener():
 
 		# each yaw, pitch, roll is between -pi to pi
 		cur_yaw, cur_pitch, cur_roll = quaternion_to_euler(cur_angular_x, cur_angular_y, cur_angular_z, cur_angular_w)
+		cur_yaw_affine = cur_yaw + pi # range of [0, 2pi]
+		cur_yaw = (cur_yaw_affine + pi/2) % (2*pi)
+		cur_yaw = cur_yaw - pi
 
 	def pedestrain_callback(data):
 		global cur_ped_x
 		global cur_ped_y
 
-		cur_ped_x = data.pose.position.x
+		cur_ped_x = -data.pose.position.x
 
 		# print("ped_x: ", data.pose.position.x)
 		# print("not none: ", cur_ped_x)
@@ -181,9 +184,15 @@ class simple_move():
 			go_straight_cmd.linear.x = speed
 			go_straight_cmd.angular.z = 0
 
+
 			# rospy.loginfo("go to {0} at speed {1} def/s".format(distance, speed))
 
-			while abs(desired_x - cur_linear_x) > 0.03 or abs(desired_y - cur_linear_y) > 0.03:
+			x_err, y_err = abs(desired_x - cur_linear_x), abs(desired_y - cur_linear_y)
+
+			while abs(desired_x - cur_linear_x) > 0.06 or abs(desired_y - cur_linear_y) > 0.06:
+				print("x and y errors are as foollows: ", x_err, y_err)
+				print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+
 				if abs(desired_x - cur_linear_x) < 0.3 and abs(desired_y - cur_linear_y) < 0.3:
 					if speed > 0:
 						go_straight_cmd.linear.x = max(speed * abs(desired_x - cur_linear_x) * p1, 0.2)
@@ -191,6 +200,8 @@ class simple_move():
 						go_straight_cmd.linear.x = min(speed * abs(desired_x - cur_linear_x) * p1, -0.2)
 				self.cmd_vel.publish(go_straight_cmd)
 				self.r.sleep()
+				x_err, y_err = abs(desired_x - cur_linear_x), abs(desired_y - cur_linear_y)
+
 		
 		elif time:
 			# rospy.loginfo("go for {0} s at speed {1} m/s".format(time, speed))
@@ -224,11 +235,12 @@ class simple_move():
 		if time:
 			turn_cmd = Twist()
 			turn_cmd.linear.x = 0
-			turn_cmd.angular.z = radians(speed) # convert 45 deg/s to radians/s
+			turn_cmd.angular.z = speed 
 			rospy.loginfo("turn left for {0} s at speed {1} def/s".format(time, speed))
 			for x in range(0,time*self.update_rate):
-				self.cmd_vel.publish(turn_left_cmd)
+				self.cmd_vel.publish(turn_cmd)
 				self.r.sleep()
+				print("current yaw: ", cur_yaw)
 		elif angle:
 			if angle > 180 or angle < -180:
 				raise Exception("angle must be smaller than 180 or greater than -180")
@@ -249,6 +261,29 @@ class simple_move():
 			if yaw_coor > pi or yaw_coor < -pi:
 				raise Exception("yaw_coor must be smaller than pi or greater than -pi")
 
+			turn_cmd = Twist()
+			turn_cmd.angular.z = speed
+
+			print("starting to turn")
+			error = abs(cur_yaw - yaw_coor)
+			while error > 0.02: 
+				if error < 0.2: 
+					turn_cmd.angular.z = 0.15
+
+				print("turning, with error ", abs(cur_yaw - yaw_coor))
+				print("cur_yaw ", cur_yaw)
+				print("yaw_coor ", yaw_coor)
+				abs(cur_yaw - yaw_coor)
+				self.cmd_vel.publish(turn_cmd)
+				self.r.sleep()
+				error = abs(cur_yaw - yaw_coor)
+
+
+
+			turn_cmd.angular.z = 0
+			self.cmd_vel.publish(turn_cmd)
+
+			"""
 			desired_x, desired_y, desired_z, desired_w = euler_to_quaternion(0, 0, yaw_coor)
 
 			print("desired: z:{0} w:{1}".format(desired_z, desired_w))
@@ -280,6 +315,8 @@ class simple_move():
 				self.r.sleep()
 				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
 				print("z error: ", abs(desired_z - cur_angular_z))
+			"""
+
 
 
 	def curve_left(self, time, lin_speed=0.2, ang_speed=20):
@@ -368,31 +405,47 @@ if __name__ == '__main__':
 
 	turtlebot = simple_move()
 	rospy.sleep(0.5)
+	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
+
+	# turtlebot.go_straight(distance=1, speed=0.4)
 	# turtlebot.turn(angle=90, speed=0.4)
-	index = 0 
-	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-	THRESHOLD = 1
+	# turtlebot.turn(time=20)
+	# index = 0 
+	# turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
+	# THRESHOLD = 1
 
 	goal = (0, 0)
 	# print(cur_yaw)
 
-	desired_coor = pi - math.atan((goal[0] - cur_linear_x) / (goal[1] - cur_linear_y))
-	if desired_coor > pi:
-		desired_coor = desired_coor - 2 * pi
-	elif desired_coor < -pi:
-		desired_coor = 2 * pi + desired_coor
+	desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
+	# # if desired_coor > pi:
+	# # 	desired_coor = desired_coor - 2 * pi
+	# # elif desired_coor < -pi:
+	# # 	desired_coor = 2 * pi + desired_coor
 
+	print("calculation: ", desired_coor)
+	
+	# if cur_linear_x >= 0 and cur_angular_y >= 0:
+	# 	desired_coor = pi - desired_coor
+	# elif cur_linear_x <= 0 and cur_linear_y <= 0:
+	# 	desired_coor = -desired_coor
+	# elif cur_linear_x <= 0 and cur_linear_y >= 0:
+	# 	desired_coor = -pi + desired_coor
+	# elif cur_linear_x >= 0 and cur_linear_y <= 0:
+	# 	desired_coor = desired_coor
 
-	# while desired_coor > pi:
-	# 	desired_coor -= pi * 2
-	# while desired_coor < -pi: 
-	# 	desired_coor += pi * 2
+	# # while desired_coor > pi:
+	# # 	desired_coor -= pi * 2
+	# # while desired_coor < -pi: 
+	# # 	desired_coor += pi * 2
 
-	print("turtlebot turned for {0}".format(desired_coor))
+	# print("turtlebot turned for {0}".format(desired_coor))
 
+	# # turtlebot.turn(yaw_coor=-pi/2)
 	turtlebot.turn(yaw_coor=desired_coor)
+
 	#turtlebot.turn(yaw_coor=-math.pi/2)
-	# turtlebot.turn(yaw_coor=math.pi/2)
+	# turtlebot.turn(angle=120)
 	
 
 	# ########### With OptiTrack ###########
