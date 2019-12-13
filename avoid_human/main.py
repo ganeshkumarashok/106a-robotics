@@ -189,7 +189,7 @@ class simple_move():
 
 			x_err, y_err = abs(desired_x - cur_linear_x), abs(desired_y - cur_linear_y)
 
-			while abs(desired_x - cur_linear_x) > 0.06 or abs(desired_y - cur_linear_y) > 0.06:
+			while abs(desired_x - cur_linear_x) > 0.1 or abs(desired_y - cur_linear_y) > 0.1:
 				print("x and y errors are as foollows: ", x_err, y_err)
 				print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
@@ -323,7 +323,7 @@ class simple_move():
 		curve_left_cmd = Twist()
 		curve_left_cmd.linear.x = lin_speed
 		curve_left_cmd.angular.z = radians(ang_speed); # convert 45 deg/s to radians/s
-		rospy.loginfo("turn left for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
+		rospy.loginfo("curve left for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
 		for x in range(0,time*self.update_rate):
 			self.cmd_vel.publish(curve_left_cmd)
 			self.r.sleep()
@@ -333,7 +333,7 @@ class simple_move():
 		curve_right_cmd = Twist()
 		curve_right_cmd.linear.x = lin_speed
 		curve_right_cmd.angular.z = -radians(ang_speed); # convert 45 deg/s to radians/s
-		rospy.loginfo("turn left for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
+		rospy.loginfo("curve right for {0} s at linear speed {1} m/s and angular speed {2} def/s".format(time, lin_speed, ang_speed))
 		for x in range(0,time*self.update_rate):
 			self.cmd_vel.publish(curve_right_cmd)
 			self.r.sleep()
@@ -404,7 +404,7 @@ if __name__ == '__main__':
 
 
 	turtlebot = simple_move()
-	rospy.sleep(5.5)
+	rospy.sleep(1.5)
 	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
 	index = 0 
@@ -472,7 +472,7 @@ if __name__ == '__main__':
 
 		turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
 
-		while turtlebot_distance_to_goal > 0.1:
+		while turtlebot_distance_to_goal > 0.15:
 			turtlebot_speed = 0.3 if THRESHOLD <= turtlebot_distance_to_human else 0
 			turtlebot.go_straight(time=0.1, speed=turtlebot_speed)
 			turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
@@ -488,6 +488,9 @@ if __name__ == '__main__':
 			time.sleep(0.017)
 
 		break
+
+	turtlebot.curve_right(time=4, lin_speed=0.3, ang_speed=35)
+	turtlebot.shutdown()
 
 	# print("pedestrain out of safety net. Continue moving!")
 	# turtlebot.go_straight(time=2, speed=0.4)
