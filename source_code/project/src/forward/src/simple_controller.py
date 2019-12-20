@@ -13,6 +13,7 @@ TURTLEBOT_ID = 'yellow' # might need to change this. If unsure or doesn't work, 
 moving_cmd_topic = '/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi'
 odom_reading_topic = '/' + TURTLEBOT_ID + '/odom/'
 
+# if the above topic is not found, use this instead
 # moving_cmd_topic = '/cmd_vel_mux/input/navi'
 # odom_reading_topic = '/odom'
 
@@ -54,25 +55,11 @@ def listener():
 	def callback(data):
 
 		#print(data.pose.pose.position)
+        # transform here
 		transform = tf_buffer.lookup_transform("base_link",
 								   "odom", #source frame
 								   rospy.Time(0), #get the tf at first available time
 								   rospy.Duration(1.0)) #wait for 1 second
-		# print("transform")
-		# print(transform)
-		# transform.transform.translation.x = 0
-		# transform.transform.translation.y = 0
-		# transform.transform.translation.z = 0
-
-		# pose_transformed = tf2_geometry_msgs.do_transform_pose(data.pose, transform)
-		# print("ORIGINAL")
-		# print(data.pose)
-		# print(data.pose.pose.position.x)
-
-		# # print(type(data.pose))
-		# print("TRANSFORMED")
-		# print(pose_transformed)
-		# print()
 		global cur_linear_x
 		global cur_linear_y
 		global cur_linear_z
@@ -95,26 +82,12 @@ def listener():
 
 		# each yaw, pitch, roll is between -pi to pi
 		cur_yaw, cur_pitch, cur_roll = quaternion_to_euler(cur_angular_x, cur_angular_y, cur_angular_z, cur_angular_w)
-		# print("yaw: ", cur_yaw)
-		# print("pitch: ", cur_pitch)
-		# print("roll: ", cur_roll)
-
-
-		# print(cur_angular_z)
-
 	sub = rospy.Subscriber(odom_reading_topic, Odometry, callback)
 
 	# only get message in 0.05s, then unsubscribe
 	# rospy.sleep(0.5)
 	# sub.unregister()
 	# rospy.spin()
-
-
-
-	#Wait for messages to arrive on the subscribed topics, and exit the node
-	#when it is killed with Ctrl+C
-	# rospy.spin()
-	# rospy.sleep()
 
 class simple_move():
 	def __init__(self):
@@ -176,88 +149,13 @@ class simple_move():
 				self.cmd_vel.publish(go_forward_cmd)
 				self.r.sleep()
 
-	def go_forward(self, time, speed=0.2):
-		# default speed is moving at 0.2 m/s
-		# time in seconds
-		rospy.loginfo("go forward for {0} s at speed {1} m/s".format(time, speed))
-		go_forward_cmd = Twist()
-		go_forward_cmd.linear.x = speed
-		go_forward_cmd.angular.z = 0
-
-		for x in range(0,time*self.update_rate):
-			self.cmd_vel.publish(go_forward_cmd)
-			self.r.sleep()
-
-			# listener()
-			print()
-			print("current linear_x while moving forward: ", cur_linear_x)
-			print("current linear_y while moving forward: ", cur_linear_y)
-			print("current linear_z while moving forward: ", cur_linear_z)
-			print("current angular_x while moving forward: ", cur_angular_x)
-			print("current angular_y while moving forward: ", cur_angular_y)
-			print("current angular_z while moving forward: ", cur_angular_z)
-
-	def go_backward(self, time=None, speed=0.2, distance=None):
-		# default speed is moving at 0.2 m/s
-		if not distance: # when we don't move by distance
-			rospy.loginfo("go backward for {0} s at speed {1} m/s".format(time, speed))
-			go_backward_cmd = Twist()
-			go_backward_cmd.linear.x = -speed
-			go_backward_cmd.angular.z = 0
-
-			for x in range(0,time*self.update_rate):
-				self.cmd_vel.publish(go_backward_cmd)
-				self.r.sleep()
-
-				# listener()
-				print("current x while moving backward: ", cur_linear_x)
-		elif distance:
-			rospy.loginfo("go backward for {0} at speed {1} m/s".format(distance, speed))
-			starting_x = cur_linear_x
-			# while cur_linear_x
-
-	def turn_right(self, time, speed=45):
-		# default speed is turning at 45 deg/s
-		turn_right_cmd = Twist()
-		turn_right_cmd.linear.x = 0
-		turn_right_cmd.angular.z = radians(speed); # convert 45 deg/s to radians/s
-		rospy.loginfo("turn_right for {0} s at speed {1} deg/s".format(time, speed))
-		for x in range(0,time*self.update_rate):
-			self.cmd_vel.publish(turn_right_cmd)
-			self.r.sleep()
-
-			print()
-			print("current linear_x while moving forward: ", cur_linear_x)
-			print("current linear_y while moving forward: ", cur_linear_y)
-			print("current linear_z while moving forward: ", cur_linear_z)
-			print("current angular_x while moving forward: ", cur_angular_x)
-			print("current angular_y while moving forward: ", cur_angular_y)
-			print("current angular_z while moving forward: ", cur_angular_z)
-
-	def turn_left(self, time, speed=45):
-		# default speed is turning at 45 deg/s
-		turn_left_cmd = Twist()
-		turn_left_cmd.linear.x = 0
-		turn_left_cmd.angular.z = -radians(speed); # convert 45 deg/s to radians/s
-		rospy.loginfo("turn left for {0} s at speed {1} def/s".format(time, speed))
-		for x in range(0,time*self.update_rate):
-			self.cmd_vel.publish(turn_left_cmd)
-			self.r.sleep()
-
-			print()
-			print("current linear_x while moving forward: ", cur_linear_x)
-			print("current linear_y while moving forward: ", cur_linear_y)
-			print("current linear_z while moving forward: ", cur_linear_z)
-			print("current angular_x while moving forward: ", cur_angular_x)
-			print("current angular_y while moving forward: ", cur_angular_y)
-			print("current angular_z while moving forward: ", cur_angular_z)
 
 	def turn(self, time=None, speed=0.4, angle=None, yaw_coor=None):
 		# counterclockwise is always increasing, and clockwise is always decreasing
 		# starting z orientation angle is always 0,
 		# and the reverse (pi or 180 degree) z is 1/-1 depends on which direction it moves
-		# if move counterclockwise, then 0 -> pi -> -pi -> 0 complete one loop
-		# if move clockwise, then 0 -> -pi -> pi -> 0 complete one loop
+		# if move counterclockwise, then 0 -> pi -> -pi -> 0 complete one circle
+		# if move clockwise, then 0 -> -pi -> pi -> 0 complete one circle
 
 		# proportional control term
 		p1 = 3
@@ -309,6 +207,7 @@ class simple_move():
 			rospy.loginfo("turn to {0} yaw coordinate at speed {1} def/s".format(yaw_coor, speed))
 			rospy.sleep(1)
 
+            # turn to some desired angle, stop when the angle is less than some threshold
 			while abs(desired_z - cur_angular_z) > 0.006 or abs(desired_w - cur_angular_w) > 0.006:
 				if abs(desired_z - cur_angular_z) < 0.2 and abs(desired_w - cur_angular_w) < 0.2:
 					if speed > 0:
@@ -320,6 +219,7 @@ class simple_move():
 				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
 				print("z error: ", abs(desired_z - cur_angular_z))
 
+
 	def curve_left(self, time, lin_speed=0.2, ang_speed=20):
 		curve_left_cmd = Twist()
 		curve_left_cmd.linear.x = lin_speed
@@ -328,6 +228,7 @@ class simple_move():
 		for x in range(0,time*self.update_rate):
 			self.cmd_vel.publish(curve_left_cmd)
 			self.r.sleep()
+
 
 	def curve_right(self, time, lin_speed=0.2, ang_speed=20):
 		curve_right_cmd = Twist()
@@ -338,83 +239,20 @@ class simple_move():
 			self.cmd_vel.publish(curve_right_cmd)
 			self.r.sleep()
 
-	def turn_left_angle(self, angle, speed=20):
-		turn_left_angle_cmd = Twist()
-		turn_left_angle_cmd.linear.x = 0
-		print('sdfjk')
-		cur_x = self.encoder.cur_linear_x
-		cur_y = self.encoder.cur_linear_y
-		cur_z = self.encoder.cur_angular_z
-
-		print("x: ", cur_x)
-
-
-# class PathPlanner():
-
-
-	# my_map.yaml
-	# image: /tmp/my_map.pgm
-	# resolution: 0.050000
-	# origin: [-12.200000, -12.200000, 0.000000]
-	# negate: 0
-	# occupied_thresh: 0.65
-	# free_thresh: 0.196
-
-
-	# def __init__(self):
-	# 	rospy.on_shutdown(self.shutdown)
-	# 	self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-	# 	self.lin_speed = 0.2
-	# 	self.linear_error_bound = 0.1
-	# 	self.controller = open_loop_move()
-
-	# def move_forward_by(self, distance = 1.0):
-	# 	time = distance/(self.lin_speed)
-	# 	self.controller.go_forward(time, speed= self.lin_speed)
-
-	# def move_back_by(self, distance = 1.0):
-	# 	time = distance/(self.lin_speed)
-	# # 	self.controller.go_backward(time, self.lin_speed)
-	# def __init__(self):
-	# 	rospy.on_shutdown(self.shutdown)
-	# 	self.cmd_vel = rospy.Publisher('/' + TURTLEBOT_ID + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-	# 	self.lin_speed = 0.2
-	# 	self.linear_error_bound = 0.1
-	# 	self.controller = open_loop_move()
-
 if __name__ == '__main__':
-	# encoder_listener = EncoderListener()
 	listener()
-	draw_tri = simple_move()
+	simple_bot = simple_move()
 	rospy.sleep(0.5)
 	print("no moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
-	draw_tri.go_straight(distance=1, speed=0.4)
+	simple_bot.go_straight(distance=1, speed=0.4)
 	print("after moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
-	# # draw_tri.curve_left(5)
-	# # draw_tri.go_forward(3, speed=0.9)
-	# # draw_tri.go_backward(3, speed = 0.3)
-	# # draw_tri.go_backward(time=2)
-	# # draw_tri.go_forward(time=2)
-	# # draw_tri.go_backward(2)
-	# # draw_tri.turn_right(2, speed=90)
-	# # draw_tri.turn_left(20, speed=20)
+	# simple_bot.curve_left(5)
+    # simple_bot.curve_right(time=3, lin_speed=0.4, ang_speed=30)
+    # simple_bot.go_straight(time=3, speed=0.4)
 
-	# # draw_tri.turn(angle=60, speed=0.8)
-	# # draw_tri.turn(yaw_coor=-pi/2)
+	# simple_bot.turn(angle=60, speed=0.8)
+	# simple_bot.turn(yaw_coor=-pi/2)
 	# print("after moving: ", cur_yaw)
 
-	# draw_tri.curve_left(2)
-	# draw_tri.go_forward(2)
-	# draw_tri.turn_right(4, speed=90)
-	# draw_tri.go_forward(2)
-
-	# draw_tri.shutdown()
-	# except:
-		# rospy.loginfo("node terminated.")
-
-"""
-Important: it looks like the yellow turtlebot has some offet in the positive z and negative z.
-Run the above code for several times, you will realize this issue. The positive z cover less
-area than negative z. What is the reason?
-"""
+	simple_bot.shutdown()

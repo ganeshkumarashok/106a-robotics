@@ -1,4 +1,4 @@
-# This file execute the whole process. 
+# This file execute the whole process.
 
 # step 1: read data from optitrack
 
@@ -13,7 +13,6 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-# from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 import tf2_ros
 import tf2_geometry_msgs
@@ -25,11 +24,8 @@ import motion_analytics
 import scipy.spatial
 
 from util import quaternion_to_euler, euler_to_quaternion
-
 import time
 
-# global cur_ped_x
-# global cur_ped_y
 
 cur_ped_x = None
 cur_ped_y = None
@@ -73,36 +69,10 @@ def listener():
 		global cur_yaw
 		global cur_pitch
 		global cur_roll
-	# print(cur_yaw)
 
-	# desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
-
-
-	# while desired_coor > pi:
-	# 	desired_coor -= pi * 2
-	# while desired_coor < -pi: 
-	# 	desired_coor += pi * 2
-
-	# print("turtlebot turned for {0}".format(desired_coor))
-
-	# turtlebot.turn(yaw_coor=desired_coor)
-
-		# cur_linear_x = data.pose.pose.position.x
-		# cur_lidesired_znear_y = data.pose.pose.position.y
-		# cur_linear_z = data.pose.pose.position.z
-		# print(cur_linear_x)
 		cur_linear_x = -data.pose.position.x
 		cur_linear_y = data.pose.position.z
 		cur_linear_z = data.pose.position.y
-
-		# print("in the turtlebot callback")
-		# print(data.pose.position.x)
-		# print(cur_linear_x)
-
-		# cur_angular_x = data.pose.pose.orientation.x
-		# cur_angular_y = data.pose.pose.orientation.y
-		# cur_angular_z = data.pose.pose.orientation.z
-		# cur_angular_w = data.pose.pose.orientation.w
 
 		cur_angular_x = data.pose.orientation.x
 		cur_angular_y = data.pose.orientation.z
@@ -130,13 +100,10 @@ def listener():
 
 		# print("in the pedestrain callback")
 
-	
+
 	# tb_sub.unregister()
-	# sub = rospy.Subscriber(odom_reading_topic, Odometry, turtlebot_callback)
 	rospy.Subscriber(ped_reading_topic, PoseStamped, pedestrain_callback)
 	rospy.Subscriber(odom_reading_topic, PoseStamped, turtlebot_callback)
-	# tb_sub.unregister()
-	# pd_sub.unregister()
 
 
 	# only get message in 0.05s, then unsubscribe
@@ -189,6 +156,7 @@ class simple_move():
 
 			x_err, y_err = abs(desired_x - cur_linear_x), abs(desired_y - cur_linear_y)
 
+			# while the distance is less than some threshold
 			while abs(desired_x - cur_linear_x) > 0.1 or abs(desired_y - cur_linear_y) > 0.1:
 				print("x and y errors are as foollows: ", x_err, y_err)
 				print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
@@ -202,7 +170,7 @@ class simple_move():
 				self.r.sleep()
 				x_err, y_err = abs(desired_x - cur_linear_x), abs(desired_y - cur_linear_y)
 
-		
+
 		elif time:
 			# rospy.loginfo("go for {0} s at speed {1} m/s".format(time, speed))
 			go_straight_cmd = Twist()
@@ -235,7 +203,7 @@ class simple_move():
 		if time:
 			turn_cmd = Twist()
 			turn_cmd.linear.x = 0
-			turn_cmd.angular.z = speed 
+			turn_cmd.angular.z = speed
 			rospy.loginfo("turn left for {0} s at speed {1} def/s".format(time, speed))
 			for x in range(0,time*self.update_rate):
 				self.cmd_vel.publish(turn_cmd)
@@ -266,8 +234,8 @@ class simple_move():
 
 			print("starting to turn")
 			error = abs(cur_yaw - yaw_coor)
-			while error > 0.02: 
-				if error < 0.2: 
+			while error > 0.02:
+				if error < 0.2:
 					turn_cmd.angular.z = 0.15
 
 				print("turning, with error ", abs(cur_yaw - yaw_coor))
@@ -282,41 +250,6 @@ class simple_move():
 
 			turn_cmd.angular.z = 0
 			self.cmd_vel.publish(turn_cmd)
-
-			"""
-			desired_x, desired_y, desired_z, desired_w = euler_to_quaternion(0, 0, yaw_coor)
-
-			print("desired: z:{0} w:{1}".format(desired_z, desired_w))
-
-			if cur_yaw * yaw_coor > 0:
-				if cur_yaw - yaw_coor > 0:
-					speed = -speed
-			elif cur_yaw * yaw_coor < 0:
-				if abs(cur_yaw - yaw_coor) > pi:
-					speed = -speed
-
-			turn_cmd = Twist()
-			turn_cmd.linear.x = 0
-			turn_cmd.angular.z = speed
-
-			rospy.loginfo("turn to {0} yaw coordinate at speed {1} def/s".format(yaw_coor, speed))
-			rospy.sleep(1)
-
-			while abs(desired_z - cur_angular_z) > 0.02 or abs(desired_w - cur_angular_w) > 0.02:
-				# print("cur_yaw: ", cur_yaw)
-				if abs(desired_z - cur_angular_z) < 0.2 and abs(desired_w - cur_angular_w) < 0.2:
-					if speed > 0:
-						turn_cmd.angular.z = max(speed * abs(desired_z - cur_angular_z) * p1, 0.2)
-					else:
-						turn_cmd.angular.z = min(speed * abs(desired_z - cur_angular_z) * p1, -0.2)
-				print("z_diff: ", abs(desired_z - cur_angular_z))
-				print("w_diff: ", abs(desired_w - cur_angular_w))
-				self.cmd_vel.publish(turn_cmd)
-				self.r.sleep()
-				print("current: z:{0} w:{1}".format(cur_angular_z, cur_angular_w))
-				print("z error: ", abs(desired_z - cur_angular_z))
-			"""
-
 
 
 	def curve_left(self, time, lin_speed=0.2, ang_speed=20):
@@ -340,74 +273,13 @@ class simple_move():
 
 
 if __name__ == '__main__':
-	# data = motion_analytics.load_mocap_csv('human_data/pose1a.csv')
-	# pedestrain = motion_analytics.get_xz_one_agent(data)
-	# # threshold = motion_analytics.get_min_distance(data)
-	# threshold = 1
-
-	# # print(pedestrain)
-
-	# # encoder_listener = EncoderListener()
-	# listener()
-	# turtlebot = simple_move()
-	# rospy.sleep(0.5)
-	# index = 60goal = (0, 0)
-	# print(cur_yaw)
-
-	# desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
-
-
-	# while desired_coor > pi:
-	# 	desired_coor -= pi * 2
-	# while desired_coor < -pi: 
-	# 	desired_coor += pi * 2
-
-	# print("turtlebot turned for {0}".format(desired_coor))
-
-	# turtlebot.turn(yaw_coor=desired_coor)
-	# # print("no moving: x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
-	# cur_human_x = pedestrain[index][1]
-	# cur_human_y = pedestrain[index][2] - 1
-	# turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_human_x)**2 + (cur_linear_y - cur_human_y)**2)
-	# print("initial distance: ", turtlebot_distance_to_human)
-
-	# while threshold <= turtlebot_distance_to_human:
-	# 	cur_human_x = pedestrain[index][1]
-	# 	cur_human_y = pedestrain[index][2] - 1
-	# 	turtlebot.go_straight(time=0.1, speed=0.2)
-	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_human_x)**2 + (cur_linear_y - cur_human_y)**2)
-		
-	# 	if index%10 == 0:
-	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-		
-	# 	index += 1
-	# 	time.sleep(0.017)
-
-	# print("pedestrain detect! Stop")
-	# turtlebot.shutdown()
-
-	# while threshold >= turtlebot_distance_to_human:
-	# 	cur_human_x = pedestrain[index][1]
-	# 	cur_human_y = pedestrain[index][2] - 1
-	# 	turtlebot.shutdown()
-	# 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_human_x)**2 + (cur_linear_y - cur_human_y)**2)
-	# 	if index%10 == 0:
-	# 		print("pedestrain-robot distance: ", turtlebot_distance_to_human)
-	# 	index += 1
-	# 	time.sleep(0.017)
-
-	# print("pedestrain out of safety net. Continue moving!")
-	# turtlebot.go_straight(time=2, speed=0.4)
-	# turtlebot.go_straight(speed=0.4)
-	# turtlebot.shutdown()
 	listener()
-
 
 	turtlebot = simple_move()
 	rospy.sleep(1.5)
 	print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 
-	index = 0 
+	index = 0
 	turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
 	THRESHOLD = 1
 
@@ -415,61 +287,31 @@ if __name__ == '__main__':
 	# print(cur_yaw)
 
 	desired_coor = math.atan2((goal[1] - cur_linear_y), (goal[0] - cur_linear_x))
-	# # if desired_coor > pi:
-	# # 	desired_coor = desired_coor - 2 * pi
-	# # elif desired_coor < -pi:
-	# # 	desired_coor = 2 * pi + desired_coor
 
 	print("calculation: ", desired_coor)
-	
-	# if cur_linear_x >= 0 and cur_angular_y >= 0:
-	# 	desired_coor = pi - desired_coor
-	# elif cur_linear_x <= 0 and cur_linear_y <= 0:
-	# 	desired_coor = -desired_coor
-	# elif cur_linear_x <= 0 and cur_linear_y >= 0:
-	# 	desired_coor = -pi + desired_coor
-	# elif cur_linear_x >= 0 and cur_linear_y <= 0:
-	# 	desired_coor = desired_coor
 
-	# # while desired_coor > pi:
-	# # 	desired_coor -= pi * 2
-	# # while desired_coor < -pi: 
-	# # 	desired_coor += pi * 2
-
-	# print("turtlebot turned for {0}".format(desired_coor))
-
-	# # turtlebot.turn(yaw_coor=-pi/2)
 	turtlebot.turn(yaw_coor=desired_coor)
 	rospy.sleep(0.5)
-	
 
 	# ########### With OptiTrack ###########
 	# threshold = motion_analytics.get_min_distance(data)
 	while not rospy.is_shutdown():
-		# rospy.sleep(2.5)
-		# print(cur_linear_x)
-		# print(cur_linear_y)
-		# print(cur_ped_x)
-		# print(cur_ped_y)
 
-		# while not rospy.is_shutdown(): 
-		if not cur_linear_x or not cur_ped_x: 
-			if not cur_linear_x: 
+		# while not rospy.is_shutdown():
+		if not cur_linear_x or not cur_ped_x:
+			if not cur_linear_x:
 				print("curlinx not def")
-			if not cur_ped_x: 
+			if not cur_ped_x:
 				print("curpedx not def")
 			continue
-
 
 		# print("initial distance: ", turtlebot_distance_to_human)
 		print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
 		print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 		print("threshold: ", THRESHOLD)
 
-			# break
 
 		# go straight until close to stop threshold, then stop
-
 		turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
 
 		while turtlebot_distance_to_goal > 0.15:
@@ -477,21 +319,16 @@ if __name__ == '__main__':
 			turtlebot.go_straight(time=0.1, speed=turtlebot_speed)
 			turtlebot_distance_to_goal = math.hypot(goal[0] - cur_linear_x, goal[1] - cur_linear_y)
 			turtlebot_distance_to_human = math.sqrt((cur_linear_x - cur_ped_x)**2 + (cur_linear_y - cur_ped_y)**2)
-			
+
 			#if index%10 == 0:
 			print("pedestrain x: {0} y: {1}".format(cur_ped_x, cur_ped_y))
 			print("tb x: {0} y: {1}".format(cur_linear_x, cur_linear_y))
 			print("pedestrain-robot distance: ", turtlebot_distance_to_human)
 			print("goal-robot distance: ", turtlebot_distance_to_goal)
-			
+
 			index += 1
 			time.sleep(0.017)
-
 		break
 
 	turtlebot.curve_right(time=4, lin_speed=0.3, ang_speed=35)
 	turtlebot.shutdown()
-
-	# print("pedestrain out of safety net. Continue moving!")
-	# turtlebot.go_straight(time=2, speed=0.4)
-	# turtlebot.shutdown()
