@@ -1,5 +1,7 @@
 # EECS 106a Final Project
 Lychee bot!
 
-Simply open the scripts folder you can run all the python scripts. We put all ros_workspace and package in the source code folder just in case.
+We put all final python scripts in the scripts folder. 
+
+We created many folders for dealing with ROS stuff initially, so during the integration we put all ros_workspaces and packages in the source code folder, just in case.
 
