@@ -9,8 +9,8 @@ def write_pgm_map(file_name, obstacles_lst):
 
     # define the width (columns) and
     # height (rows) of your image
-    width = 576
-    height = 480
+    width = 57
+    height = 48
 
     # use PIL.Image to draw circle and rectangle
     image = Image.new('1', (width, height), color=255)
@@ -61,4 +61,4 @@ def write_pgm_map(file_name, obstacles_lst):
 
     # close the file
     fout.close()
-write_pgm_map('x.pgm', [((4, 20), "human"), ((18, 8), "block")])
+write_pgm_map('x.pgm', [((20, 40), "human"), ((10, 15), "block")])
